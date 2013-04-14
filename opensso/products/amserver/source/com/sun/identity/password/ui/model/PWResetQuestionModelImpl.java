@@ -126,7 +126,7 @@ public class PWResetQuestionModelImpl extends PWResetModelImpl
      * Name of password expiration time attribute.
      */
     private static final String PASSWORD_EXPIRATION_TIME_ATTR = 
-        "passwordExpirationTime";
+        "sch-vir-passwordMustChanged";
 
     /**
      * Name of default question selected constant
@@ -146,7 +146,7 @@ public class PWResetQuestionModelImpl extends PWResetModelImpl
      * Name of password expiration time value for force reset.
      */
     private static final String PASSWORD_EXPIRATION_TIME_VALUE = 
-        "19700101000000Z";
+        "true";
 
     /**
      * Constructs a password reset question model object
@@ -324,6 +324,9 @@ public class PWResetQuestionModelImpl extends PWResetModelImpl
     private Map getSecretQuestions(AMIdentity user, String realm) 
         throws SSOException, IdRepoException {
         if (secretQuestionsMap == null) {
+            secretQuestionsMap = new HashMap(1);
+            secretQuestionsMap.put("mail", user.getAttribute("mail").iterator().next());
+	    /*
             try {
                 Set defaults = getDefaultQuestions(realm);
                 if (user != null) {
@@ -335,7 +338,7 @@ public class PWResetQuestionModelImpl extends PWResetModelImpl
                 }
             } catch (SMSException e) {
                 debug.error("PWResetQuestionModelImpl.getSecretQuestions", e);
-            }
+            }*/
         }
         return secretQuestionsMap;
     }
