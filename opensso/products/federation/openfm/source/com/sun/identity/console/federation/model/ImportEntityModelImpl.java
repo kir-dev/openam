@@ -39,6 +39,8 @@ import com.sun.identity.saml2.common.SAML2Constants;
 import com.sun.identity.saml2.jaxb.entityconfig.BaseConfigType;
 import com.sun.identity.saml2.jaxb.entityconfig.EntityConfigElement;
 import com.sun.identity.saml2.jaxb.metadata.EntityDescriptorElement;
+import com.sun.identity.saml2.jaxb.metadata.EntitiesDescriptorElement;
+import com.sun.identity.saml2.jaxb.metadata.RoleDescriptorType;
 import com.sun.identity.saml2.meta.SAML2MetaException;
 import com.sun.identity.saml2.meta.SAML2MetaManager;
 import com.sun.identity.saml2.meta.SAML2MetaSecurityUtils;
@@ -49,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Iterator;
 import javax.xml.bind.JAXBException;
 import javax.servlet.http.HttpServletRequest;
 import org.w3c.dom.Document;
@@ -222,13 +225,14 @@ public class ImportEntityModelImpl extends AMModelBase
             ImportMetaData importmetadata = new ImportMetaData();
                    importmetadata.workaroundAbstractRoleDescriptor(doc);
             Object obj = SAML2MetaUtils.convertNodeToJAXB(doc); 
+            SAML2MetaSecurityUtils.verifySignature(doc);
 
             if (obj instanceof EntityDescriptorElement) {
-                EntityDescriptorElement descriptor =
-                    (EntityDescriptorElement)obj;
-             
-                SAML2MetaSecurityUtils.verifySignature(doc);
-                metaManager.createEntityDescriptor(realm, descriptor);             
+                importSAML2Entity(metaManager, realm,
+                        (EntityDescriptorElement)obj);
+            } else if (obj instanceof EntitiesDescriptorElement) {
+                importSAML2Entites(metaManager, realm,
+                        (EntitiesDescriptorElement)obj);
             }
         } catch (JAXBException e) {
             debug.warning("ImportEntityModel.importSAML2MetaData", e);
@@ -237,7 +241,48 @@ public class ImportEntityModelImpl extends AMModelBase
             debug.warning("ImportEntityModel.importSAML2MetaData", e);
             throw new AMConsoleException(e.getMessage());
         } 
-    }    
+    }
+
+    private void importSAML2Entity(SAML2MetaManager metaManager, String realm,
+            EntityDescriptorElement descriptor) throws SAML2MetaException {
+        List roles = descriptor.
+                getRoleDescriptorOrIDPSSODescriptorOrSPSSODescriptor();
+        Iterator it = roles.iterator();
+        while (it.hasNext()) {
+            Object o = it.next();
+            RoleDescriptorType role = (RoleDescriptorType) o;
+            List protocols = role.getProtocolSupportEnumeration();
+            if (!protocols.contains(SAML2Constants.PROTOCOL_NAMESPACE)) {
+                debug.warning("ImportEntityModel.importSAML2MetaData: " +
+                        "Removing non-SAML2 role from entity " +
+                        descriptor.getEntityID());
+                it.remove();
+            }
+        }
+        if (roles.size() > 0) {
+            metaManager.createEntityDescriptor(realm, descriptor);
+        }
+    }
+
+    private void importSAML2Entites(SAML2MetaManager metaManager, String realm,
+            EntitiesDescriptorElement descriptor) throws SAML2MetaException {
+        Iterator descriptors = descriptor.
+                getEntityDescriptorOrEntitiesDescriptor().iterator();
+        while (descriptors.hasNext()) {
+            Object o = descriptors.next();
+            if (o instanceof EntityDescriptorElement) {
+		try {
+                    importSAML2Entity(metaManager, realm,
+                            (EntityDescriptorElement) o);
+                } catch (SAML2MetaException e) {
+                    debug.warning("ImportEntityModel.importSAML2Entities", e);
+                }
+            } else if (o instanceof EntitiesDescriptorElement) {
+                importSAML2Entites(metaManager, realm,
+                        (EntitiesDescriptorElement) o);
+            }
+        }
+    }
     
     private void createIDFFEntity() throws AMConsoleException {
         try {
