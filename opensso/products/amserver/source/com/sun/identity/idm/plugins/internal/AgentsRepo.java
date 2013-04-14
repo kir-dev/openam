@@ -1381,6 +1381,11 @@ public class AgentsRepo extends IdRepo implements ServiceListener {
                         + "Unable to authenticate SSOException: " +
                         ssoe.getMessage());
             }
+        } catch (IdRepoException idex) {
+            if (debug.warningEnabled()) {
+                debug.warning("AgentsRepo.authenticate(): "
+                        + "Unable to authenticate IdRepoException:" + idex.getMessage());
+            }
         }
         return (answer);
     }
