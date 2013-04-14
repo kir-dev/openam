@@ -1,1 +1,12 @@
 .svn
+
+# extlibs downloadable from: https://wikis.forgerock.org/confluence/display/openam/Build+OpenAM+from+Source
+opensso/products/extlib/*
+
+# generated
+built/
+opensso/products/federation/openfm/extlib
+tracker.properties
+opensso/products/amserver/resources/locale/AccessManagerCLI.properties
+opensso/products/amserver/samples/scripts/chmod.sh
+opensso/products/federation/openfm/resources/locale/FederationManagerCLI.properties
